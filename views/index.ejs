@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Socket.IO chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Gupter:wght@400;500;700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Oswald:wght@200..700&family=Playwrite+NG+Modern:wght@100..400&family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Winky+Sans:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/stylesheets/style.css">
+
+</head>
+
+<body>
+    <div class="chat">
+        <center><h1 class="title crimson-text-bold-italic">Chat Application</h1></center>
+        <ul id="messages"></ul>
+        <form id="form" action="">
+            <input id="input" autocomplete="off" /><button>Send</button>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+   <script>
+    let deviceId = localStorage.getItem("deviceId")
+let userName = prompt("Enter your name")
+if (!deviceId) {
+    deviceId = `${crypto.randomUUID()}`
+    localStorage.setItem('deviceId', deviceId)
+}
+let counter = 0
+const socket = io({
+    auth: {
+        userId: deviceId,
+        name: userName   //sending to the server
+    },
+});
+const form = document.getElementById('form');
+const input = document.getElementById('input');
+const messages = document.getElementById('messages');
+
+
+const createMessageElement = (userName,inputVal,dir)=>{
+    const item = document.createElement('li');
+        item.setAttribute('class', `${dir}`)
+        item.innerHTML = `
+        <h5 class="user">${userName}</h5>
+        <p class="msg">${inputVal}</p>
+  `
+        messages.appendChild(item);
+}
+
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (input.value) {
+        clientOffset = `${socket.id}-${counter++}`
+        socket.emit('chat message', input.value,userName, clientOffset)
+        createMessageElement("You",input.value,'right')
+
+        input.value = ''
+    }
+});
+
+socket.on('chat message', (msg, clientName) => {
+    createMessageElement(clientName,msg,'left')
+});
+
+socket.on('newConnection', (clientName) => {
+    // alert(`${clientName} joined the group`)
+    const item = document.createElement('li');
+    item.setAttribute('class', "new")
+    item.innerHTML = `
+        <h5 class="user">${clientName} has joined the</h5>
+  `
+    messages.appendChild(item);
+})
+
+socket.on("disconnected",(userName)=>{
+    console.log(userName)
+    const item = document.createElement('li');
+    item.setAttribute('class', "new")
+    item.style.background = '#ff6969'
+    item.innerHTML =`
+        <h5 class="user">${userName} leaved the chat</h5>
+  `
+    messages.appendChild(item);
+
+    
+})
+   </script>
+</body>
+
+</html>
